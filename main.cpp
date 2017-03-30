@@ -12,7 +12,7 @@ using namespace std;
 
 
 class NodeTree{
-    
+
 public:
     bool attr_leaf;
     int name;
@@ -34,102 +34,11 @@ public:
     
 };
 
-pair<float,float> MI(vector<vector<int> > exms,int attr){
-    
-    float mid = 0;
-    float mi;  int C[8]={0};
-    
-    if(attr<10){
-        for(int i=0;i<exms.size();i++){
-            mid+=exms[i][attr];
-            C[exms[i][y_j]]++;
-        }
-        mid=mid/exms.size();
-    }
-    else{
-        for(int i=0;i<exms.size();i++){
-            C[exms[i][y_j]]++;
-        }
-        
-    }
-    
-    float first = 0;
-    for(int i=1;i<8;i++){
-        C[i]/=exms.size();
-        first+=(-(C[i]*log(C[i])));
-    }
-    float second = 0;
-    vector<vector<int> > ft,sd;
-    
-    if(attr<10){
-        for(int i=0;i<exms.size();i++){
-            if(exms[i][attr]<mid){
-                ft.push_back(exms[i]);
-            }
-            else{
-                sd.push_back(exms[i]);
-            }
-        }
-    }
-    else{
-        for(int i=0;i<exms.size();i++){
-            if(exms[i][attr]){
-                ft.push_back(exms[i]);
-            }
-            else{
-                sd.push_back(exms[i]);
-            }
-        }
-    }
-    
-    int Cft[8]={0};
-    int Csd[8]={0};
-    float a,b;
-    a=b=0;
-    for(int i=0;i<ft.size();i++){
-        Cft[ft[i][y_j]]++;
-    }
-    for(int i=1;i<8;i++){
-        Cft[i]/=ft.size();
-        a+=(-(Cft[i]*log(Cft[i])));
-    }
-    
-    for(int i=0;i<sd.size();i++){
-        Csd[sd[i][y_j]]++;
-    }
-    for(int i=1;i<8;i++){
-        Csd[i]/=sd.size();
-        b+=(-(Csd[i]*log(Csd[i])));
-    }
-    second = (ft.size()*a+sd.size()*b)/exms.size();
-    
-    mi = first-second;
-    
-    return make_pair(mi, mid);
-    
-}
 
-pair<int,float> bestAttribute(vector<vector<int> > examples,int parent_attr){
+int bestAttribute(vector<vector<int> > examples){
     
-    float max_MI = -1;
-    float max_mid = -1;
-    int max_MI_attr = -1;
-    pair<float,float> mi;
-    for(int i=0;i<54;i++){
-        if(i!=parent_attr){
-            mi = MI(examples,i) ;
-            if(max_MI < mi.first){
-                max_MI_attr = i ;
-                max_MI = mi.first;
-                max_mid = mi.second;
-            }
-        }
-    }
-    return make_pair(max_MI_attr, max_mid);
-    
-    
-    //    srand(time(NULL));
-    //    return (rand()%54);
+    srand(time(NULL));
+    return (rand()%54);
 }
 
 pair<bool,int> same_examples(vector<vector<int> > exs){
@@ -144,7 +53,7 @@ pair<bool,int> same_examples(vector<vector<int> > exs){
     }
     pair<bool,int> ans(same,y);
     return ans;
-    
+
 }
 
 float calc_mid(vector<vector<int> > exps,int attr){
@@ -194,9 +103,7 @@ int most_occ_class(vector<vector<int> > exms){
  End
  Return Root
  */
-
-//build decision tree by classifying training datas
-NodeTree* buildTree(vector<vector<int> > examples,int parent_attr){
+NodeTree* buildTree(vector<vector<int> > examples){
     
     pair<bool,int> same_exps = same_examples(examples);
     if(same_exps.first){
@@ -205,15 +112,15 @@ NodeTree* buildTree(vector<vector<int> > examples,int parent_attr){
         return leaf;
     }
     
-    pair<int,float> attr_pair = bestAttribute(examples,parent_attr);
-    NodeTree* root = new NodeTree(attr_pair.first,attr_pair.first<10?1:0);
+    int attr = bestAttribute(examples);
+    NodeTree* root = new NodeTree(attr,attr<10?1:0);
     root->exmps = new vector<vector<int> >(examples);
     
     vector<vector<int> > left_ex,right_ex;
     if(root->cont_disc){
-        root->mid = attr_pair.second;
+        root->mid = calc_mid(examples,attr);
         for(int i=0;i<examples.size();i++){
-            if(examples[i][attr_pair.first]<root->mid){
+            if(examples[i][attr]<root->mid){
                 right_ex.push_back(examples[i]);
             }
             else{
@@ -223,7 +130,7 @@ NodeTree* buildTree(vector<vector<int> > examples,int parent_attr){
     }
     else{
         for(int i=0;i<examples.size();i++){
-            if(examples[i][attr_pair.first]){
+            if(examples[i][attr]){
                 right_ex.push_back(examples[i]);
             }
             else{
@@ -235,7 +142,6 @@ NodeTree* buildTree(vector<vector<int> > examples,int parent_attr){
     cout<<right_ex.size()<<endl;
     cout<<left_ex.size()<<endl;
     cout<<endl<<endl;
-    
     if(left_ex.size()==0){
         return new NodeTree(most_occ_class(right_ex));
     }
@@ -243,8 +149,8 @@ NodeTree* buildTree(vector<vector<int> > examples,int parent_attr){
         return new NodeTree(most_occ_class(left_ex));
     }
     else{
-        root->left = buildTree(left_ex,attr_pair.first);
-        root->right = buildTree(right_ex,attr_pair.first);
+        root->left = buildTree(left_ex);
+        root->right = buildTree(right_ex);
     }
     
     return root;
@@ -285,13 +191,13 @@ int main(int argc, const char * argv[]) {
     vector<vector<int> > X_train;
     vector<int> y_train,X_y_i;
     for(int i=0;i<rows.size();i++){
-        //        X_y_i = split(rows[i], ',');
-        //        y_train.push_back(X_y_i[X_y_i.size()-1]);
-        //        X_y_i.pop_back();
-        //        X_train.push_back(X_y_i);
+//        X_y_i = split(rows[i], ',');
+//        y_train.push_back(X_y_i[X_y_i.size()-1]);
+//        X_y_i.pop_back();
+//        X_train.push_back(X_y_i);
         X_train.push_back(split(rows[i], ','));
     }
-    NodeTree* dec_tree = buildTree(X_train,-1);
+    NodeTree* dec_tree = buildTree(X_train);
     
     return 0;
 }
